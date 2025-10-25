@@ -1,45 +1,48 @@
-import pytest
+# conftest.py
+import os, time, logging, pytest
 from selenium import webdriver
 from selenium.webdriver.chrome.options import Options
 from selenium.webdriver.chrome.service import Service
-from webdriver_manager.chrome import ChromeDriverManager   
+from webdriver_manager.chrome import ChromeDriverManager
 
 BASE_URL = "https://www.ketnoitieudung.vn/"
+RUN_TS = time.strftime("%Y%m%d_%H%M%S")
+ROOT = os.path.join("artifacts", RUN_TS)
+SS_DIR = os.path.join(ROOT, "screenshots")
+os.makedirs(SS_DIR, exist_ok=True)
+
+log = logging.getLogger("e2e")
+if not log.handlers:
+    log.setLevel(logging.INFO)
+    fh = logging.FileHandler(os.path.join(ROOT, "test_run.log"), encoding="utf-8")
+    fh.setFormatter(logging.Formatter("%(asctime)s [%(levelname)s] %(message)s"))
+    log.addHandler(fh)
 
 @pytest.fixture(scope="session")
-def base_url():
-    return BASE_URL
+def base_url(): return BASE_URL
+
 @pytest.fixture
 def driver():
-    options = Options()
-    options.add_argument("--start-maximized")
-    # options.add_argument("--headless=new")  # cần thì bật CI
-    options.add_argument("--disable-blink-features=AutomationControlled")
-    options.add_argument("--disable-gpu")
-    options.add_argument("--no-sandbox")
-    options.add_argument("--disable-dev-shm-usage")
-    options.add_argument("--disable-features=VizDisplayCompositor")
-    options.add_argument("--lang=vi-VN")
-    options.add_argument("--user-agent=Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120 Safari/537.36")
-
-    service = Service(ChromeDriverManager().install())
-    d = webdriver.Chrome(service=service, options=options)
-    d.set_page_load_timeout(45)
-    d.implicitly_wait(5)
+    o = Options(); o.add_argument("--start-maximized")
+    if os.getenv("HEADLESS") == "1": o.add_argument("--headless=new")
+    o.add_experimental_option("excludeSwitches", ["enable-automation"])
+    o.add_experimental_option("useAutomationExtension", False)
+    d = webdriver.Chrome(service=Service(ChromeDriverManager().install()), options=o)
+    d.set_page_load_timeout(45); d.implicitly_wait(5)
     yield d
-    try:
-        d.quit()
-    except Exception:
-        pass
+    d.quit()
 
-
-@pytest.fixture
-def driver():
-    options = Options()
-    options.add_argument("--start-maximized")
-    # options.add_argument("--headless=new")   # nếu chạy không cần GUI
-    service = Service(ChromeDriverManager().install())
-    driver = webdriver.Chrome(service=service, options=options)
-    driver.implicitly_wait(5)
-    yield driver
-    driver.quit()
+@pytest.hookimpl(hookwrapper=True)
+def pytest_runtest_makereport(item, call):
+    yield
+    rep = call.excinfo
+    if not rep: return
+    drv = item.funcargs.get("driver")
+    if drv:
+        path = os.path.join(SS_DIR, f"{item.name}_{time.strftime('%H%M%S')}.png")
+        try:
+            drv.save_screenshot(path)
+            log.error(f"[FAIL] {item.name} -> {path}")
+            print(f"\n[FAIL] {item.name} -> screenshot: {path}")
+        except Exception as e:
+            log.error(f"Screenshot failed: {e}")
