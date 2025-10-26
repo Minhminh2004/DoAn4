@@ -44,7 +44,7 @@ class SearchPage(BasePage):
         try:
             self.click(self._button, 6)
         except Exception:
-            # fallback: submit form qua JS
+            
             el = self.find(self._input, 2)
             self.driver.execute_script("if(arguments[0].form) arguments[0].form.submit();", el)
 

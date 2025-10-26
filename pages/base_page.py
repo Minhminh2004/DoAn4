@@ -15,7 +15,6 @@ class BasePage:
     def wait_clickable(self, loc, t=10):
         return self._wait(EC.element_to_be_clickable(loc), t)
 
-    # ✅ CHỈNH Ở ĐÂY: hỗ trợ cả t và timeout
     def click(self, loc, t=None, timeout=10):
         if t is None:
             t = timeout

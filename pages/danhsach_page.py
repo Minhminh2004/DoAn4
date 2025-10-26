@@ -7,7 +7,6 @@ from selenium.webdriver.support.ui import WebDriverWait
 from .base_page import BasePage
 
 class ProductListPage(BasePage):
-    # Header search
     SEARCH_INPUT = (By.XPATH, "/html/body/div[2]/header[2]/div/div[1]/div[2]/div/div/form/input")
     SEARCH_BTN   = (By.XPATH, "/html/body/div[2]/header[2]/div/div[1]/div[2]/div/div/form/button")
 
@@ -16,7 +15,7 @@ class ProductListPage(BasePage):
     ADD_BTN_ANY  = (By.XPATH, "(//button[contains(.,'Thêm vào giỏ') or contains(.,'Mua ngay')])[1]")
 
     # Mini-cart popup & nút Thanh toán
-    MINICART_ANY     = (By.XPATH, "/html/body/div[5]")  # container overlay hiện tại trên site
+    MINICART_ANY     = (By.XPATH, "/html/body/div[5]") 
     CHECKOUT_BUTTONS = [
         (By.XPATH, "/html/body/div[5]/div[2]/div[4]/a[2]"),
         (By.XPATH, "//a[contains(.,'Thanh toán')]"),
@@ -29,7 +28,6 @@ class ProductListPage(BasePage):
         self.open(base_url)
         WebDriverWait(self.driver, 10).until(EC.presence_of_element_located(self.SEARCH_INPUT))
         self.type(self.SEARCH_INPUT, str(keyword), 8)
-        # Bấm nút, fallback submit form
         try:
             self.click(self.SEARCH_BTN, 6)
         except Exception:
@@ -44,14 +42,14 @@ class ProductListPage(BasePage):
         card = WebDriverWait(self.driver, timeout).until(EC.visibility_of_element_located(self.PRODUCT_CARD))
         try:
             ActionChains(self.driver).move_to_element(card).perform()
-            time.sleep(0.3)  # cho hiện button nếu bị ẩn theo hover
+            time.sleep(0.3)  
         except Exception:
             pass
 
     def add_first_product_to_cart(self, timeout: int = 10):
         """Bấm 'Thêm vào giỏ hàng' cho sản phẩm đầu danh sách."""
         last_err = None
-        # Thử hover card để nút hiện
+     
         self._hover_first_card()
 
         try:
@@ -67,7 +65,7 @@ class ProductListPage(BasePage):
         except Exception as e:
             last_err = e
 
-        # Fallback: click thẳng nút bằng JS nếu có
+
         try:
             btn = self.driver.find_element(*self.ADD_BTN_ANY)
             self.driver.execute_script("arguments[0].click();", btn)
@@ -79,7 +77,7 @@ class ProductListPage(BasePage):
             f"Không tìm thấy nút 'Thêm vào giỏ/Mua ngay' trên trang danh sách. ({last_err})"
         )
 
-    # alias cho test
+
     def add_first_to_cart(self, timeout: int = 10):
         return self.add_first_product_to_cart(timeout)
 
@@ -88,9 +86,9 @@ class ProductListPage(BasePage):
         WebDriverWait(self.driver, timeout).until(
             EC.presence_of_element_located(self.MINICART_ANY)
         )
-        time.sleep(0.5)  # cho layout ổn định
+        time.sleep(0.5)  
 
-        # thử theo nhiều locator
+     
         for by in self.CHECKOUT_BUTTONS:
             els = self.driver.find_elements(*by)
             if not els:
